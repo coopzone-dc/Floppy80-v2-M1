@@ -32,6 +32,8 @@ Pass these on the first cmake command, e.g. `cmake -B build -S . -DSD_SPI_KHZ=20
 
 | Option | Default | Meaning |
 |--------|---------|---------|
+| `PICO_TARGET` | `PICO or PICO2` | Build for either PICO or PICO2, default is PICO2. |
+| `SYSCLOCK` | `133 - 270` |Set the overclock rate. Don't go wild! Default is PICO2 150Mhz, PICO 200Mhz. You may need to change SD_SPI_KHZ and adjust the number of __nop() calls in the NopDelya macro found in memory.c |
 | `SD_SPI_KHZ` | `12500` | SD card SPI clock in kHz. The original firmware used 5000. Faster is better for track loads and writes, but cards and wiring differ: try 12500, then 20000 and 25000, and drop back if you see SD errors. |
 | `SD_FLUSH_DELAY_MS` | `200` | Idle time before buffered writes are synced (`f_sync`) to the SD card. `0` syncs after every write (original behaviour, slowest, safest if power can drop right after a write). |
 | `SD_FLUSH_MAX_MS` | `2000` | Longest time unsynced writes may stay buffered during continuous writing. |
