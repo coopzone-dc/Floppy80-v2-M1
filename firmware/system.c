@@ -428,6 +428,10 @@ void SysProcessConfigEntry(char szLabel[], char* psz)
 	{
 		g_byEnableL3Ram = atoi(psz);
 	}
+	else if (strcmp(szLabel, "SDKHZ") == 0)
+	{
+		g_dwSdSpiKhz = (DWORD)atoi(psz);
+	}
 	else if (strcmp(szLabel, "L3RAMF") == 0)
 	{
 		SysCopyFileName(psz, g_szL3RamFile, sizeof(g_szL3RamFile));
@@ -482,5 +486,6 @@ void SysInit(void)
 	
 	FileClose(f);	
 
+	SdApplyConfiguredClock();	// raise the SD card clock to SDKHZ (if set)
 	SysLoadL3Ram();
 }

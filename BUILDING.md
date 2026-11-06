@@ -27,14 +27,12 @@ this will create Floppy80.uf2 file which you burn to the RPI PICO
 
 ### Build options (speed / behaviour)
 
-Pass these on the first cmake command, e.g. `cmake -B build -S . -DSD_SPI_KHZ=20000`
+Pass these on the first cmake command, e.g. `cmake -B build -S . -DSD_FLUSH_DELAY_MS=0`
 (with the VS Code extension, add them to the CMake configure arguments).
 
 | Option | Default | Meaning |
 |--------|---------|---------|
-| `PICO_TARGET` | `PICO or PICO2` | Build for either PICO or PICO2, default is PICO2. |
-| `SYSCLOCK` | `133 - 270` |Set the overclock rate. Don't go wild! Default is PICO2 150Mhz, PICO 200Mhz. You may need to change SD_SPI_KHZ and adjust the number of __nop() calls in the NopDelya macro found in memory.c |
-| `SD_SPI_KHZ` | `12500` | SD card SPI clock in kHz. The original firmware used 5000. Faster is better for track loads and writes, but cards and wiring differ: try 12500, then 20000 and 25000, and drop back if you see SD errors. |
+| `SD_SPI_KHZ` | `5000` | SD card SPI *boot* clock in kHz. The card is always mounted, and `system.cfg` read, at this speed (5000 = the original firmware). To go faster, set `SDKHZ=nnnn` in `system.cfg` (see USER-GUIDE.md) instead of changing this: cards and wiring differ, and a card that cannot keep up at the higher speed still boots at the safe one. |
 | `SD_FLUSH_DELAY_MS` | `200` | Idle time before buffered writes are synced (`f_sync`) to the SD card. `0` syncs after every write (original behaviour, slowest, safest if power can drop right after a write). |
 | `SD_FLUSH_MAX_MS` | `2000` | Longest time unsynced writes may stay buffered during continuous writing. |
 | `SD_CRC_ENABLED` | `ON` | Verify CRC on SD data blocks. `OFF` is a little faster at high SPI clocks. |

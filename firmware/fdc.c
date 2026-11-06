@@ -3002,6 +3002,10 @@ void FdcProcessStatusRequest(byte print)
 	strcat_s((char*)(g_bFdcResponse.buf),  sizeof(g_bFdcResponse.buf)-1, szBuf);
 	strcat_s((char*)(g_bFdcResponse.buf),  sizeof(g_bFdcResponse.buf)-1, szLineEnd);
 
+	sprintf(szBuf, "SDKHZ=%d", (int)g_dwSdSpiKhz);
+	strcat_s((char*)(g_bFdcResponse.buf),  sizeof(g_bFdcResponse.buf)-1, szBuf);
+	strcat_s((char*)(g_bFdcResponse.buf),  sizeof(g_bFdcResponse.buf)-1, szLineEnd);
+
 	strcat_s((char*)(g_bFdcResponse.buf),  sizeof(g_bFdcResponse.buf)-1, (char*)"L3RAMF=");
 	strcat_s((char*)(g_bFdcResponse.buf),  sizeof(g_bFdcResponse.buf)-1, g_szL3RamFile);
 	strcat_s((char*)(g_bFdcResponse.buf),  sizeof(g_bFdcResponse.buf)-1, szLineEnd);

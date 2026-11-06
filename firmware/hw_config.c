@@ -36,9 +36,10 @@ socket, which SPI it is driven by, and how it is wired.
 //
 #include "diskio.h" /* Declarations of disk functions */
 
-// SD card SPI clock. Originally fixed at 5 MHz. CMake passes SD_SPI_BAUD_HZ from the SD_SPI_KHZ option.
+// SD card SPI "boot" clock: used to initialise and mount the card and read system.cfg. CMake passes
+// SD_SPI_BAUD_HZ from the SD_SPI_KHZ option. SDKHZ in system.cfg can raise it afterwards (see sd_core.c).
 #ifndef SD_SPI_BAUD_HZ
-#define SD_SPI_BAUD_HZ (12500 * 1000)
+#define SD_SPI_BAUD_HZ (5000 * 1000)
 #endif
 
 // void spi0_dma_isr();

@@ -15,6 +15,10 @@ This file contains global configuration settings. The file and settings are
 optional, and all have meaningful defaults The settings are:
 * MEM - Used to enable / disable 32KB RAM; 1 = enabled (default); 0 = disabled
 * LMEM - Used to enable / disable 16KB of lower memory RAM; 1 = enabled; 0 = disabled (default)
+* SDKHZ - SD card SPI clock in kHz, e.g. SDKHZ=12500. The card is always mounted and system.cfg read at the
+  firmware's boot speed (5000 by default); the clock is then changed to this value. Accepted range is 1000 to 25000.
+  Not all cards work at higher speeds (a card that is too slow for the setting can make the Floppy80 lock up), so
+  increase it in steps, e.g. 8333, 10000, 12500, and test with your card. If it is missing, the boot speed is kept
 * L3RAM - Used to enable / disable 1KB of RAM at 3000h-33FFh; 1 = enabled; 0 = disabled (default)
 * L3RAMF - Name of a file (in the root folder) used to fill the L3RAM area at power on, e.g. L3RAMF=BOOT3000.BIN.
   The file is a raw binary image loaded at 3000h, up to 1024 bytes. If it is shorter, the rest of the area is
