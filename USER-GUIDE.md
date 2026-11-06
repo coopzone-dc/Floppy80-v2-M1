@@ -32,6 +32,9 @@ e.g.
 MEM=1
 VHD=0
 WAIT=0
+SDKHZ=6250
+L3RAM=1
+L3RAMF=test.rom
 ```
 
 Wait states are used to slow the Z80 CPU, to get it to wait for all
