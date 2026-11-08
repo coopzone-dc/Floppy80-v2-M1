@@ -16,6 +16,7 @@
 #include "hw_config.h"
 #include "sd_card.h"
 #include "sd_spi.h"
+#include "hardware/spi.h"
 #include "util.h"
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -168,6 +169,21 @@ void SdApplyConfiguredClock(void)
 	}
 
 	sd_spi_go_high_frequency(pSD);
+}
+
+////////////////////////////////////////////////////////////////////////////////////
+// Returns the SPI clock the SD card interface is currently set to, in kHz (0 if the SPI is not
+// initialised). This is the rate the hardware actually runs at, which can be below the requested one.
+DWORD SdGetSpiKhz(void)
+{
+	sd_card_t* pSD = sd_get_by_num(0);
+
+	if ((pSD == NULL) || (pSD->spi == NULL) || (pSD->spi->initialized == false))
+	{
+		return 0;
+	}
+
+	return (DWORD)(spi_get_baudrate(pSD->spi->hw_inst) / 1000);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////

@@ -21,6 +21,7 @@ BYTE IsSdCardInserted(void);
 BYTE IsSdCardWriteProtected(void);
 void MountSdCard(void);
 void SdApplyConfiguredClock(void);
+DWORD SdGetSpiKhz(void);
 void TestSdCardInsertion(void);
 void SDHC_Init(void);
 

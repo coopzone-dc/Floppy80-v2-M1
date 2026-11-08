@@ -46,6 +46,21 @@ the Floppy emulation, which is optimised for normal CPU speed.
 The issue with wait states is they are known to disrupt
 critical timed operations, such as formatting a floppy disk.
 
+###Option ROM
+The two parameters L3RAM and L3RAMF can be used to load a file into unused 
+address space at 3000H (12288 dec), it can be a maximum of 1024 bytes and
+was added to provide a way of potentially testing things like boot roms
+etc. The sd card has the source code for a very simple example in the folder
+testrom. It compiles at 3000h and just calls CLS and CHAR out routenes to
+display "Hello World!". it's loaded by default with the system.cfg provided.
+You can call it from basic, to test it:
+
+SYSTEM
+*
+type
+/12288
+
+
 ### boot.cfg
 Specify the default INI file to load at reset of the Floppy80
 when the floppy 80 boots or is reset it reads the contents of

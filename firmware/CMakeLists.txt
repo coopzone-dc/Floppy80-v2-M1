@@ -30,17 +30,25 @@ set_property(CACHE PICO_TARGET PROPERTY STRINGS PICO PICO2)
 if(PICO_TARGET STREQUAL "PICO")
 	set(PICO_BOARD pico CACHE STRING "Board type" FORCE)
 	add_compile_definitions(TARGET_PICO=1)
-	if("${SYSCLOCK}" STREQUAL "")
-	  add_compile_definitions(SYS_CLOCK=200000)
-	else()
-        	math(EXPR SYS_CLOCK_KHZ "${SYSCLOCK} * 1000")
-		add_compile_definitions(SYS_CLOCK=${SYS_CLOCK_KHZ})
-	endif()
+	set(DEFAULT_SYSCLOCK 200)
 elseif(PICO_TARGET STREQUAL "PICO2")
 	set(PICO_BOARD pico2 CACHE STRING "Board type" FORCE)
 	add_compile_definitions(TARGET_PICO2=1)
+	set(DEFAULT_SYSCLOCK "")	# SDK default (150 MHz)
 else()
 	message(FATAL_ERROR "Invalid PICO_TARGET='${PICO_TARGET}'. Use PICO or PICO2.")
+endif()
+
+# System clock in MHz (-DSYSCLOCK=nnn) for both boards. The Pico defaults to 200 MHz; the Pico 2 keeps the
+# SDK default of 150 MHz unless SYSCLOCK is given. The SDK applies the clock before main() (SDK 2.1.1 or later).
+if("${SYSCLOCK}" STREQUAL "")
+	set(SYSCLOCK_MHZ "${DEFAULT_SYSCLOCK}")
+else()
+	set(SYSCLOCK_MHZ "${SYSCLOCK}")
+endif()
+
+if(NOT "${SYSCLOCK_MHZ}" STREQUAL "")
+	add_compile_definitions(SYS_CLK_MHZ=${SYSCLOCK_MHZ})
 endif()
 
 message(STATUS "Building for ${PICO_BOARD} (${PICO_TARGET})")
@@ -69,6 +77,14 @@ endif()
 
 # Pull in Raspberry Pi Pico SDK (must be before project)
 include(pico_sdk_import.cmake)
+
+if(DEFINED PICO_SDK_VERSION_STRING)
+	message(STATUS "Pico SDK version ${PICO_SDK_VERSION_STRING}")
+
+	if((NOT "${SYSCLOCK_MHZ}" STREQUAL "") AND (PICO_SDK_VERSION_STRING VERSION_LESS "2.1.1"))
+		message(FATAL_ERROR "Pico SDK ${PICO_SDK_VERSION_STRING} is too old: the system clock (${SYSCLOCK_MHZ} MHz) is set through SYS_CLK_MHZ, which needs SDK 2.1.1 or later")
+	endif()
+endif()
 
 project(Floppy80 C CXX ASM)
 

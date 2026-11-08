@@ -196,7 +196,7 @@ DAM marker values:
 
 ////////////////////////////////////////////////////////////////////////////////////
 
-static char*   g_pszVersion = {(char*)"0.2.1beta"};
+static char*   g_pszVersion = {(char*)"0.2.1"};
 static FdcType g_FDC;
 
 FdcDriveType g_dtDives[MAX_DRIVES];
@@ -2937,6 +2937,7 @@ void FdcProcessStatusRequest(byte print)
 	char szBuf[64];
 	char szLineEnd[4];
 	char speed[5];
+	char sdspeed[8];
 	int  i;
 	
 	if (print)
@@ -2950,13 +2951,18 @@ void FdcProcessStatusRequest(byte print)
 
     memset(&g_bFdcResponse, 0, sizeof(g_bFdcResponse));
 	snprintf(speed,sizeof(speed),"%d", (unsigned int)(clock_get_hz(clk_sys) / 1000000));
+	snprintf(sdspeed,sizeof(sdspeed),"%u", (unsigned int)SdGetSpiKhz());
 
-	strcpy_s((char*)(g_bFdcResponse.buf), sizeof(g_bFdcResponse.buf)-1, (char*)"Pico FDC Version ");
+	strcpy_s((char*)(g_bFdcResponse.buf), sizeof(g_bFdcResponse.buf)-1, (char*)"Pico FDC ");
 	strcat_s((char*)(g_bFdcResponse.buf), sizeof(g_bFdcResponse.buf)-1, g_pszVersion);
 	strcat_s((char*)(g_bFdcResponse.buf), sizeof(g_bFdcResponse.buf)-1, szLineEnd);
-	strcat_s((char*)(g_bFdcResponse.buf), sizeof(g_bFdcResponse.buf)-1, (char*)"System clock ");
+	strcat_s((char*)(g_bFdcResponse.buf), sizeof(g_bFdcResponse.buf)-1, (char*)"Clock ");
 	strcat_s((char*)(g_bFdcResponse.buf), sizeof(g_bFdcResponse.buf)-1, speed);
 	strcat_s((char*)(g_bFdcResponse.buf), sizeof(g_bFdcResponse.buf)-1, (char*)"mhz");
+	strcat_s((char*)(g_bFdcResponse.buf), sizeof(g_bFdcResponse.buf)-1, szLineEnd);
+	strcat_s((char*)(g_bFdcResponse.buf), sizeof(g_bFdcResponse.buf)-1, (char*)"SPI ");
+	strcat_s((char*)(g_bFdcResponse.buf), sizeof(g_bFdcResponse.buf)-1, sdspeed);
+	strcat_s((char*)(g_bFdcResponse.buf), sizeof(g_bFdcResponse.buf)-1, (char*)"khz");
 	strcat_s((char*)(g_bFdcResponse.buf), sizeof(g_bFdcResponse.buf)-1, szLineEnd);
 	strcat_s((char*)(g_bFdcResponse.buf), sizeof(g_bFdcResponse.buf)-1, (char*)"BootIni=");
 	strcat_s((char*)(g_bFdcResponse.buf), sizeof(g_bFdcResponse.buf)-1, g_szBootConfig);

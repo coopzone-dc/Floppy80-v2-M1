@@ -37,6 +37,7 @@ Pass these on the first cmake command, e.g. `cmake -B build -S . -DSD_FLUSH_DELA
 | `SD_FLUSH_MAX_MS` | `2000` | Longest time unsynced writes may stay buffered during continuous writing. |
 | `SD_CRC_ENABLED` | `ON` | Verify CRC on SD data blocks. `OFF` is a little faster at high SPI clocks. |
 | `FDC_LOGGING` | `OFF` | Log Z80 register accesses for the CLI log command. Adds work to every bus access on core 1, so leave it off unless you are debugging. |
+| `SYSCLOCK` | `200` (Pico), SDK default `150` (Pico 2) | System clock in MHz, e.g. `-DSYSCLOCK=150`. Works for both boards. The SDK applies it before `main()` (SDK 2.1.1 or later). The `NopDelay()` bus delays in `memory.c` are tuned for 200 MHz (Pico) and 150 MHz (Pico 2), so test other speeds with a real Z80. The current value is shown on the `Clock` line of the status listing. |
 
 Alternately you can use VSCode and the RPI Pico extension.
 
