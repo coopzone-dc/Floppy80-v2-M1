@@ -46,7 +46,8 @@ the Floppy emulation, which is optimised for normal CPU speed.
 The issue with wait states is they are known to disrupt
 critical timed operations, such as formatting a floppy disk.
 
-###Option ROM
+### Option ROM
+
 The two parameters L3RAM and L3RAMF can be used to load a file into unused 
 address space at 3000H (12288 dec), it can be a maximum of 1024 bytes and
 was added to provide a way of potentially testing things like boot roms
