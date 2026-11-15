@@ -1,1 +1,8 @@
+# CMake / Pico SDK build output
 build
+build*/
+firmware/pico*/
+*.uf2
+*.elf
+*.elf.map
+*.dis

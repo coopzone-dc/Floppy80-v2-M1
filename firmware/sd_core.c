@@ -3,7 +3,12 @@
 #include <ctype.h>
 #include <stdlib.h>
 
+#include <time.h>
+
 #include "pico/multicore.h"
+#ifndef SD_LIB_LEGACY
+#include "pico/aon_timer.h"
+#endif
 
 #include "defines.h"
 #include "sd_core.h"
@@ -15,7 +20,11 @@
 #include "f_util.h"
 #include "hw_config.h"
 #include "sd_card.h"
+#ifdef SD_LIB_LEGACY
 #include "sd_spi.h"
+#else
+#include "SPI/sd_spi.h"
+#endif
 #include "hardware/spi.h"
 #include "util.h"
 
@@ -40,17 +49,54 @@ static BYTE    sd_byPreviousWpState;
 static WORD    sd_wCardInitTries;
 
 ////////////////////////////////////////////////////////////////////////////////////
-static FATFS *sd_get_fs_by_name(const char *name)
+static FATFS *sd_get_fatfs(void)
 {
-    for (size_t i = 0; i < sd_get_num(); ++i)
+	sd_card_t* pSD = sd_get_by_num(0);
+
+	if (pSD == NULL)
 	{
-        if (0 == strcmp(sd_get_by_num(i)->pcName, name))
-		{
-			return &sd_get_by_num(i)->fatfs;
-		}
+		return NULL;
 	}
 
-    return NULL;
+#ifdef SD_LIB_LEGACY
+	return &pSD->fatfs;
+#else
+	return &pSD->state.fatfs;
+#endif
+}
+
+//-----------------------------------------------------------------------------
+// Returns the SPI object of the SD card, or NULL if the card is not SPI attached.
+static spi_t* sd_get_spi(void)
+{
+	sd_card_t* pSD = sd_get_by_num(0);
+
+#ifdef SD_LIB_LEGACY
+	if (pSD == NULL)
+	{
+		return NULL;
+	}
+
+	return pSD->spi;
+#else
+	if ((pSD == NULL) || (pSD->type != SD_IF_SPI) || (pSD->spi_if_p == NULL))
+	{
+		return NULL;
+	}
+
+	return pSD->spi_if_p->spi;
+#endif
+}
+
+//-----------------------------------------------------------------------------
+// FatFs drive name of the SD card ("0:")
+static const char* sd_get_drive(void)
+{
+#ifdef SD_LIB_LEGACY
+	return "0:";
+#else
+	return sd_get_drive_prefix(sd_get_by_num(0));
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -92,19 +138,18 @@ BYTE IsSdCardWriteProtected(void)
 ////////////////////////////////////////////////////////////////////////////////////
 BYTE sd_getfreespace(void)
 {
-	char*    pszDrive = (char*)"0:";
     DWORD    fre_clust, fre_sect, tot_sect;
 	uint64_t nSecPerCluster, nFree;
 
     /* Get volume information and free clusters of drive */
-    FATFS* pfs = sd_get_fs_by_name(pszDrive);
+    FATFS* pfs = sd_get_fatfs();
 
     if (!pfs)
 	{
         return 1;
     }
 
-    FRESULT fr = f_getfree("0:", &fre_clust, &pfs);
+    FRESULT fr = f_getfree(sd_get_drive(), &fre_clust, &pfs);
 
     if (FR_OK != fr)
 	{
@@ -136,17 +181,18 @@ BYTE sd_getfreespace(void)
 // the clock for normal operation. A card that is inserted later is handled the same way.
 void SdApplyConfiguredClock(void)
 {
-	sd_card_t* pSD = sd_get_by_num(0);
+	sd_card_t* pSD  = sd_get_by_num(0);
+	spi_t*     pSpi = sd_get_spi();
 	DWORD      dwKhz = g_dwSdSpiKhz;
 
-	if (pSD == NULL)
+	if ((pSD == NULL) || (pSpi == NULL))
 	{
 		return;
 	}
 
 	if (sd_dwBootBaud == 0)
 	{
-		sd_dwBootBaud = pSD->spi->baud_rate;
+		sd_dwBootBaud = pSpi->baud_rate;
 	}
 
 	if (dwKhz != 0)
@@ -161,11 +207,11 @@ void SdApplyConfiguredClock(void)
 			dwKhz = SD_KHZ_MAX;
 		}
 
-		pSD->spi->baud_rate = dwKhz * 1000;
+		pSpi->baud_rate = dwKhz * 1000;
 	}
 	else
 	{
-		pSD->spi->baud_rate = sd_dwBootBaud;
+		pSpi->baud_rate = sd_dwBootBaud;
 	}
 
 	sd_spi_go_high_frequency(pSD);
@@ -176,14 +222,14 @@ void SdApplyConfiguredClock(void)
 // initialised). This is the rate the hardware actually runs at, which can be below the requested one.
 DWORD SdGetSpiKhz(void)
 {
-	sd_card_t* pSD = sd_get_by_num(0);
+	spi_t* pSpi = sd_get_spi();
 
-	if ((pSD == NULL) || (pSD->spi == NULL) || (pSD->spi->initialized == false))
+	if ((pSpi == NULL) || (pSpi->initialized == false))
 	{
 		return 0;
 	}
 
-	return (DWORD)(spi_get_baudrate(pSD->spi->hw_inst) / 1000);
+	return (DWORD)(spi_get_baudrate(pSpi->hw_inst) / 1000);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -213,17 +259,17 @@ void MountSdCard(void)
 
 			// initialise the card at the boot speed
 			{
-				sd_card_t* pSD = sd_get_by_num(0);
+				spi_t* pSpi = sd_get_spi();
 
-				if (pSD != NULL)
+				if (pSpi != NULL)
 				{
 					if (sd_dwBootBaud == 0)
 					{
-						sd_dwBootBaud = pSD->spi->baud_rate;
+						sd_dwBootBaud = pSpi->baud_rate;
 					}
 					else
 					{
-						pSD->spi->baud_rate = sd_dwBootBaud;
+						pSpi->baud_rate = sd_dwBootBaud;
 					}
 				}
 			}
@@ -233,8 +279,8 @@ void MountSdCard(void)
 				return;
 			}
 
-			char*  pszDrive = (char*)"0:";
-			FATFS* pfs = sd_get_fs_by_name(pszDrive);
+			char const* pszDrive = sd_get_drive();	// "0:"
+			FATFS*      pfs      = sd_get_fatfs();
 
 			if (!pfs)
 			{
@@ -242,7 +288,7 @@ void MountSdCard(void)
 				return;
 			}
 
-			fr = f_mount(pfs, "0:", 1);
+			fr = f_mount(pfs, pszDrive, 1);
 
 			if (fr == FR_OK)
 			{
@@ -325,6 +371,19 @@ void SDHC_Init(void)
 	sd_wCardInitTries          = 0;
 	g_dwSdCardMaxPresenceCount = 10000;
 	g_dwSdCardPresenceCount    = 0;
-	
+
+#ifndef SD_LIB_LEGACY
+	// FatFs file time stamps come from the SDK's always-on timer. Start it at 2000-01-01 00:00:00 (the
+	// date the old library reported) unless it is already running, so files do not get an invalid date.
+	if (!aon_timer_is_running())
+	{
+		struct timespec ts;
+
+		ts.tv_sec  = 946684800;
+		ts.tv_nsec = 0;
+		aon_timer_start(&ts);
+	}
+#endif
+
 	MountSdCard();
 }

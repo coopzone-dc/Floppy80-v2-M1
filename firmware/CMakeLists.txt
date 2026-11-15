@@ -58,13 +58,52 @@ message(STATUS "Building for ${PICO_BOARD} (${PICO_TARGET})")
 set(SD_SPI_KHZ 5000 CACHE STRING "SD card SPI boot clock in kHz, used to mount the card and read system.cfg. SDKHZ in system.cfg can raise it afterwards (5000 = original firmware)")
 set(SD_FLUSH_DELAY_MS 200 CACHE STRING "Idle time (ms) before buffered SD writes are synced; 0 = sync after every write")
 set(SD_FLUSH_MAX_MS 2000 CACHE STRING "Longest time (ms) unsynced writes may stay buffered")
+# SD card library: NEW = no-OS-FatFS-SD-SDIO-SPI-RPi-Pico (SDHC/SDXC cards only, official Pico 2 support);
+# LEGACY = the older no-OS-FatFS-SD-SPI-RPi-Pico, which also accepts standard capacity cards (2 GB or smaller).
+set(SD_LIBRARY "NEW" CACHE STRING "SD card library: NEW (SDHC/SDXC cards only) or LEGACY (also supports standard capacity cards up to 2 GB)")
+set_property(CACHE SD_LIBRARY PROPERTY STRINGS NEW LEGACY)
+
+if(SD_LIBRARY STREQUAL "LEGACY")
+	add_compile_definitions(SD_LIB_LEGACY=1)
+elseif(NOT SD_LIBRARY STREQUAL "NEW")
+	message(FATAL_ERROR "Invalid SD_LIBRARY='${SD_LIBRARY}'. Use NEW or LEGACY.")
+endif()
+message(STATUS "SD card library: ${SD_LIBRARY}")
+
+# Folder of the chosen library. Check it now so a missing library gives a clear message.
+if(SD_LIBRARY STREQUAL "LEGACY")
+	set(SD_LIB_DIR lib/no-OS-FatFS-SD-SPI-RPi-Pico-master/FatFs_SPI)
+	set(SD_LIB_TARGET FatFs_SPI)
+else()
+	set(SD_LIB_DIR lib/no-OS-FatFS-SD-SDIO-SPI-RPi-Pico/src)
+	set(SD_LIB_TARGET no-OS-FatFS-SD-SDIO-SPI-RPi-Pico)
+endif()
+
+if(NOT EXISTS "${CMAKE_CURRENT_LIST_DIR}/${SD_LIB_DIR}/CMakeLists.txt")
+	message(FATAL_ERROR "SD card library not found: firmware/${SD_LIB_DIR}\n"
+	                    "Put that library back in place, or choose the other one with -DSD_LIBRARY=NEW or -DSD_LIBRARY=LEGACY.")
+endif()
+
+set(SD_SPI_MODE 0 CACHE STRING "SPI mode (0-3) used for the SD card. 0 is the standard setting; mode 3 can be around 15% faster with some cards")
 option(SD_CRC_ENABLED "Check CRC on SD card data blocks (slightly slower, more robust)" ON)
+option(SD_MESSAGES "Print SD card driver error and info messages on the USB console" ON)
+option(SD_DEBUG_MESSAGES "Also print the SD card driver's debug messages (very verbose)" OFF)
 option(FDC_LOGGING "Log Z80 register accesses for the CLI log command (slows the bus path)" OFF)
 
 math(EXPR SD_SPI_BAUD_HZ_VALUE "${SD_SPI_KHZ} * 1000")
 add_compile_definitions(SD_SPI_BAUD_HZ=${SD_SPI_BAUD_HZ_VALUE}
                         SD_FLUSH_DELAY_MS=${SD_FLUSH_DELAY_MS}
-                        SD_FLUSH_MAX_MS=${SD_FLUSH_MAX_MS})
+                        SD_FLUSH_MAX_MS=${SD_FLUSH_MAX_MS}
+                        SD_SPI_MODE=${SD_SPI_MODE})
+# SD_SPI_MODE, SD_MESSAGES and SD_DEBUG_MESSAGES only apply to the NEW library
+if(SD_LIBRARY STREQUAL "NEW")
+	if(SD_MESSAGES)
+		add_compile_definitions(USE_PRINTF=1)
+	endif()
+	if(SD_DEBUG_MESSAGES)
+		add_compile_definitions(USE_PRINTF=1 USE_DBG_PRINTF=1)
+	endif()
+endif()
 if(SD_CRC_ENABLED)
 	add_compile_definitions(SD_CRC_ENABLED=1)
 else()
@@ -81,6 +120,10 @@ include(pico_sdk_import.cmake)
 if(DEFINED PICO_SDK_VERSION_STRING)
 	message(STATUS "Pico SDK version ${PICO_SDK_VERSION_STRING}")
 
+	if((SD_LIBRARY STREQUAL "NEW") AND (PICO_SDK_VERSION_STRING VERSION_LESS "2.0.0"))
+		message(FATAL_ERROR "Pico SDK ${PICO_SDK_VERSION_STRING} is too old: the SD card library (no-OS-FatFS-SD-SDIO-SPI-RPi-Pico v3) needs SDK 2.0.0 or later")
+	endif()
+
 	if((NOT "${SYSCLOCK_MHZ}" STREQUAL "") AND (PICO_SDK_VERSION_STRING VERSION_LESS "2.1.1"))
 		message(FATAL_ERROR "Pico SDK ${PICO_SDK_VERSION_STRING} is too old: the system clock (${SYSCLOCK_MHZ} MHz) is set through SYS_CLK_MHZ, which needs SDK 2.1.1 or later")
 	endif()
@@ -90,7 +133,9 @@ project(Floppy80 C CXX ASM)
 
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()
-add_subdirectory(lib/no-OS-FatFS-SD-SPI-RPi-Pico-master/FatFs_SPI build)
+# SD card library, selected with -DSD_LIBRARY=NEW|LEGACY. With NEW the SPI interface is used; the SDIO
+# side of the library is built but not configured.
+add_subdirectory(${SD_LIB_DIR} build)
 
 # Add executable. Default name is the project name, version 0.1
 
@@ -114,7 +159,7 @@ target_link_libraries(Floppy80
     pico_multicore
     hardware_pio
     hardware_irq
-    FatFs_SPI
+    ${SD_LIB_TARGET}
 )
 
 # Enable usb output, disable uart output

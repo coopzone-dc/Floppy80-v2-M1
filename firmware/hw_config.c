@@ -42,6 +42,12 @@ socket, which SPI it is driven by, and how it is wired.
 #define SD_SPI_BAUD_HZ (5000 * 1000)
 #endif
 
+//=============================================================================================
+// LEGACY library (no-OS-FatFS-SD-SPI-RPi-Pico), selected with cmake -DSD_LIBRARY=LEGACY.
+// Also accepts standard capacity SD cards (2 GB or smaller).
+//=============================================================================================
+#ifdef SD_LIB_LEGACY
+
 // void spi0_dma_isr();
 
 /* 
@@ -118,3 +124,70 @@ spi_t *spi_get_by_num(size_t num) {
 }
 
 /* [] END OF FILE */
+
+#else
+//=============================================================================================
+// NEW library (no-OS-FatFS-SD-SDIO-SPI-RPi-Pico): SDHC/SDXC cards only.
+//=============================================================================================
+
+// SPI mode 0 is the standard setting for SD cards. Mode 3 can be faster with some cards.
+#ifndef SD_SPI_MODE
+#define SD_SPI_MODE 0
+#endif
+
+/*
+This design uses SPI0 for the SD card:
+
+|       | SPI0  | GPIO  | Pin   | SPI       | MicroSD   | Description            |
+| ----- | ----  | ----- | ---   | --------  | --------- | ---------------------- |
+| MISO  | RX    | 4     | 6     | DO        | DO        | Master In, Slave Out   |
+| MOSI  | TX    | 3     | 5     | DI        | DI        | Master Out, Slave In   |
+| SCK   | SCK   | 2     | 4     | SCLK      | CLK       | SPI clock              |
+| CS0   | CSn   | 5     | 7     | SS or CS  | CS        | Slave (or Chip) Select |
+| DET   |       | 28    | 34    |           | CD        | Card Detect            |
+| GND   |       |       | 18,23 |           | GND       | Ground                 |
+| 3v3   |       |       | 36    |           | 3v3       | 3.3 volt power         |
+
+Card Detect (GPIO 28) is read by the firmware itself (see sd_core.c), not by the library.
+SDIO is not possible with this wiring: it needs four data lines on consecutive GPIOs.
+*/
+
+// Hardware Configuration of the SPI "object"
+static spi_t spi = {
+    .hw_inst   = spi0,  // SPI component
+    .miso_gpio = 4,     // GPIO number (not pin number)
+    .mosi_gpio = 3,
+    .sck_gpio  = 2,
+    /* The choice of SD card matters! Some cards run at the highest speed, others
+       (for example some PNY cards) can only manage about 5 MHz. */
+    .baud_rate = SD_SPI_BAUD_HZ,  // Set with -DSD_SPI_KHZ=nnn (see CMakeLists.txt)
+    .spi_mode  = SD_SPI_MODE,     // Set with -DSD_SPI_MODE=n (see CMakeLists.txt)
+};
+
+// SPI interface of the SD card socket
+static sd_spi_if_t spi_if = {
+    .spi     = &spi,  // Pointer to the SPI driving this card
+    .ss_gpio = 5,     // The SPI slave select GPIO for this SD card
+};
+
+// Hardware Configuration of the SD Card "object"
+static sd_card_t sd_card = {
+    .type            = SD_IF_SPI,
+    .spi_if_p        = &spi_if,  // Pointer to the SPI interface driving this card
+    .use_card_detect = false,    // the firmware reads the card detect pin itself
+};
+
+/* ********************************************************************** */
+size_t sd_get_num() { return 1; }
+
+sd_card_t *sd_get_by_num(size_t num) {
+    if (0 == num) {
+        return &sd_card;
+    } else {
+        return NULL;
+    }
+}
+
+/* [] END OF FILE */
+
+#endif  // SD_LIB_LEGACY

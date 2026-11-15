@@ -39,6 +39,9 @@ The software provided includes 2 main components
 See the separate [Software Build Guide](BUILDING.md) for details on 
 building the Floppy-80 software
 
+The CMake build options (target board, clock speed, SD card library and so on) are listed in
+[CMAKE-OPTIONS.md](CMAKE-OPTIONS.md).
+
 ## User Guide
 
 For User Instructions please see the separate [User Guide](USER-GUIDE.md)

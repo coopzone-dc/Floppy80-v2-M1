@@ -3,6 +3,9 @@
 ## Configuration
 
 An SD Card (FAT formatted) is required to contain the disk images, and configuration.
+The card must be an SDHC or SDXC card (larger than 2 GB). Older standard capacity SD cards, up to and including
+2 GB, are not supported by the default firmware. A firmware built with the `LEGACY` SD card library option
+(see BUILDING.md) does support them.
 
 Configuration of the Floppy80-M1 is performed with the placement of
 files on the SD-Card inserted in its card reader. 
