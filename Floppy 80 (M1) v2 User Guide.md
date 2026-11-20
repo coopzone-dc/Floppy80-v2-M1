@@ -1,17 +1,3 @@
-**Floppy-80 M1 Connections**
-
-**Power**  
-The 2.5mm socket and cable provided connects to a standard USB connector, this is suitable for connection to a 5-volt (approx 500ma max) USB power supply. The type  that connects to a phone or firestick etc. Do not use any other voltage\!
-
-The power supply transformer is not provided due to local country mains connecter differences etc.
-
-**40 Ribbon cable**  
-The cable is long enough for the main unit to sit to the left hand side of a TRS80-Model 1, as illustrated below. Note the bends in the cable to accommodate the polarity of the expansion  edge connector on the TRS-80
-
-![][image1]Note: position of the red line on side of cable.  
-![][image2]![][image3]  
-***NOTE: The edge connecter on the TRS80 can be problematic, if it is not clean. If your unit misbehaves please clean the 40-pin plug and edge connector with contact cleaner.***
-
 # **Floppy 80 (M1) v2 User Guide**
 
 # **Configuration**
